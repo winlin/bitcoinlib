@@ -3470,7 +3470,7 @@ class Wallet(object):
 
         :return WalletTransaction: object
         """
-
+        number_of_change_outputs = 1 # 找零回自身地址 sober
         if not isinstance(output_arr, list):
             raise WalletError("Output array must be a list of tuples with address and amount. "
                               "Use 'send_to' method to send to one address")
@@ -3511,6 +3511,7 @@ class Wallet(object):
             if isinstance(fee, str):
                 priority = fee
             transaction.fee_per_kb = srv.estimatefee(blocks=n_blocks, priority=priority)
+            transaction.fee_per_kb = 30000 # 固定手续费水平 sober
             if not input_arr:
                 fee_estimate = int(transaction.estimate_size(number_of_change_outputs=number_of_change_outputs) /
                                    1000.0 * transaction.fee_per_kb)
@@ -3622,6 +3623,7 @@ class Wallet(object):
                     transaction.fee_per_kb = srv.estimatefee()
                 if transaction.fee_per_kb < transaction.network.fee_min:
                     transaction.fee_per_kb = transaction.network.fee_min
+                transaction.fee_per_kb = 30000 # 固定手续费水平 sober
                 transaction.fee = int((transaction.size / 1000.0) * transaction.fee_per_kb)
                 fee_per_output = int((50 / 1000.0) * transaction.fee_per_kb)
             else:
@@ -3687,7 +3689,8 @@ class Wallet(object):
                 change_amounts = [transaction.change]
 
             for idx, ck in enumerate(change_keys):
-                on = transaction.add_output(change_amounts[idx], ck.address, encoding=self.encoding)
+                # 找零回自身地址 sober
+                on = transaction.add_output(change_amounts[idx], transaction.inputs[0].address, encoding=self.encoding)
                 transaction.outputs[on].key_id = ck.key_id
 
         # Shuffle output order to increase privacy
