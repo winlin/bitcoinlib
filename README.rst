@@ -1,3 +1,6 @@
+安装说明：
+`pip3 install .`
+
 改动说明：
 
 `transaction_create`方法
