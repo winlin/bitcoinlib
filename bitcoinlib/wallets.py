@@ -3471,6 +3471,10 @@ class Wallet(object):
         :return WalletTransaction: object
         """
         number_of_change_outputs = 1 # 找零回自身地址 sober
+        priority_fixed_fee = { # 优先固定gas价格 sober
+            'dogecoin':2000000,
+            'litecoin':30000,
+        }
         if not isinstance(output_arr, list):
             raise WalletError("Output array must be a list of tuples with address and amount. "
                               "Use 'send_to' method to send to one address")
@@ -3510,8 +3514,9 @@ class Wallet(object):
             priority = ''
             if isinstance(fee, str):
                 priority = fee
-            transaction.fee_per_kb = srv.estimatefee(blocks=n_blocks, priority=priority)
-            transaction.fee_per_kb = 30000 # 固定手续费水平 sober
+            transaction.fee_per_kb = priority_fixed_fee.get(network, 0) # 固定手续费水平
+            if not transaction.fee_per_kb:
+                transaction.fee_per_kb = srv.estimatefee(blocks=n_blocks, priority=priority)
             if not input_arr:
                 fee_estimate = int(transaction.estimate_size(number_of_change_outputs=number_of_change_outputs) /
                                    1000.0 * transaction.fee_per_kb)
@@ -3619,11 +3624,11 @@ class Wallet(object):
         transaction.size = transaction.estimate_size(number_of_change_outputs=number_of_change_outputs)
         if fee is None:
             if not input_arr:
+                transaction.fee_per_kb = priority_fixed_fee.get(network, 0) # 固定手续费水平
                 if not transaction.fee_per_kb:
                     transaction.fee_per_kb = srv.estimatefee()
-                if transaction.fee_per_kb < transaction.network.fee_min:
-                    transaction.fee_per_kb = transaction.network.fee_min
-                transaction.fee_per_kb = 30000 # 固定手续费水平 sober
+                    if transaction.fee_per_kb < transaction.network.fee_min:
+                        transaction.fee_per_kb = transaction.network.fee_min
                 transaction.fee = int((transaction.size / 1000.0) * transaction.fee_per_kb)
                 fee_per_output = int((50 / 1000.0) * transaction.fee_per_kb)
             else:
